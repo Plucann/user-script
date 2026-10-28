@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         shencaiyoudao · Codex Skin
 // @namespace    https://shenlunsucai.com/
-// @version      1.3.0
-// @description  把「申材有道」重绘为 Codex 桌面应用风格：52px 图标条 + 双层左侧栏、令牌级配色重映射、⌘K 跳转面板、强调色/明暗/栏宽可调；素材页的 AI 解读面板与「问 AI」抽屉按 Codex 对话形态重绘，素材详情页的报刊排版改成无衬线阅读栏。只改外观与导航增强，不碰站点数据。
+// @version      1.4.0
+// @description  把「申材有道」重绘为 Codex 桌面应用风格：52px 图标条 + 双层左侧栏、令牌级配色重映射、⌘K 跳转面板、强调色/明暗/栏宽可调；素材页的 AI 解读面板与「问 AI」抽屉按 Codex 对话形态重绘，素材详情页改成等宽终端会话流（随机英文思考块、工具调用行、回复框与状态栏）。只改外观与导航增强，不碰站点数据。
 // @author       local
 // @homepageURL  https://github.com/Plucann/user-script/blob/main/shenlunsucai-codex.user.js
 // @supportURL   https://github.com/Plucann/user-script
@@ -907,11 +907,11 @@
   --cx-accent-ink: var(--cx-accent);
 }
 :root.cx-on[data-theme="light"] {
-  --cx-accent-ink: color-mix(in srgb, var(--cx-accent) 74%, #0b1a2a);
+  --cx-accent-ink: color-mix(in srgb, var(--cx-accent) 70%, #0b1a2a);
 }
 @media (prefers-color-scheme: light) {
   :root.cx-on:not([data-theme="dark"]) {
-    --cx-accent-ink: color-mix(in srgb, var(--cx-accent) 74%, #0b1a2a);
+    --cx-accent-ink: color-mix(in srgb, var(--cx-accent) 70%, #0b1a2a);
   }
 }
 
@@ -1203,6 +1203,452 @@
   :root.cx-on .mat-read-scroll { padding: 16px 14px 44px !important; }
   :root.cx-on .mat-read-actions .mat-action span { display: none; }
 }
+
+/* ---------- 1.14 素材详情：终端会话视图（TUI） ----------
+ * 把「报刊排版」重绘成 Codex / Claude Code 的终端会话流。
+ * 结构不动，装饰全部挂在 section 与标题的三个伪元素上：
+ *   .mm-section::before            → 右上角 [01] · 12m
+ *   .mm-section-title::before      → ● 消息头圆点
+ *   .mm-section-title::after       → ✳ Contemplated for 31s + 斜体英文思考
+ *   .mm-section-title + *::before  → ● Read(简报.md) / └ 6 items 工具行
+ *   .mm-section::after             → [r] reply [l] like [c] link
+ * 思考文案与工具参数由脚本写进 data-cx-* 属性，CSS 只负责排版；
+ * 不新增任何 React 管理的节点，重渲染也不会打架。
+ */
+:root.cx-on {
+  --cx-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Mono", Menlo,
+             Consolas, "Sarasa Mono SC", "Noto Sans Mono CJK SC", monospace;
+  --cx-tui-dim: var(--cx-text-3);
+  --cx-tui-rule: var(--cx-line);
+}
+
+/* 阅读区底色：终端要比应用外壳更深一档（用 .cx-reading 限定，只作用于素材详情） */
+:root.cx-on.cx-reading .mat-read-body { background: var(--cx-bg) !important; }
+:root.cx-on.cx-reading[data-theme="dark"] .mat-read-body { background: #0a0b0c !important; }
+:root.cx-on.cx-reading[data-theme="light"] .mat-read-body { background: #fbfbf8 !important; }
+@media (prefers-color-scheme: dark) {
+  :root.cx-on.cx-reading:not([data-theme="light"]) .mat-read-body { background: #0a0b0c !important; }
+}
+@media (prefers-color-scheme: light) {
+  :root.cx-on.cx-reading:not([data-theme="dark"]) .mat-read-body { background: #fbfbf8 !important; }
+}
+
+/* 顶部工具栏：等宽、方角、去掉装饰 */
+:root.cx-on .mat-read-top {
+  min-height: 48px !important;
+  background: transparent !important;
+  border-bottom: 1px solid var(--cx-tui-rule) !important;
+}
+:root.cx-on .mat-read-top,
+:root.cx-on .mat-read-actions .mat-action,
+:root.cx-on .mat-read-top .ps-chrome-back {
+  font-family: var(--cx-mono) !important;
+  letter-spacing: 0 !important;
+}
+:root.cx-on .mat-read-actions .mat-action,
+:root.cx-on .mat-read-top .ps-chrome-back { border-radius: 4px !important; }
+:root.cx-on .mat-read-actions .pa-iit-btn { border-radius: 4px !important; }
+
+/* 阅读流 */
+:root.cx-on .mat-read-scroll { padding: 20px 40px 116px !important; }
+:root.cx-on .mm-paper {
+  max-width: 820px !important;
+  font-family: var(--cx-mono) !important;
+  font-size: 13.5px !important;
+  line-height: 1.95 !important;
+}
+:root.cx-on .mm-paper :is(p, li, b, strong, em, span) { font-family: var(--cx-mono) !important; }
+:root.cx-on .mm-paper :is(p, li) { font-size: 13.5px !important; line-height: 1.95 !important; }
+
+/* 刊头 → 一行终端面包屑：> 公考 / shenlunsucai.com      第 312 期 · 2026-10-28 */
+:root.cx-on .mm-masthead {
+  display: flex !important;
+  align-items: baseline !important;
+  flex-wrap: wrap !important;
+  gap: 0 10px !important;
+  padding: 0 0 9px !important;
+  margin: 0 0 4px !important;
+  border-bottom: 1px solid var(--cx-tui-rule) !important;
+  font-family: var(--cx-mono) !important;
+}
+:root.cx-on .mm-masthead-top {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 0 !important;
+  min-width: 0 !important;
+  order: 1;
+}
+:root.cx-on .mm-masthead-brand {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 0 !important;
+}
+:root.cx-on .mm-masthead-brand::before {
+  content: ">" !important;
+  margin-right: 7px;
+  color: var(--cx-accent) !important;
+  font-weight: 700;
+}
+:root.cx-on .mm-masthead-brand h1 {
+  margin: 0 !important;
+  font-family: var(--cx-mono) !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  color: var(--cx-text) !important;
+}
+:root.cx-on .mm-masthead-url {
+  font-family: var(--cx-mono) !important;
+  font-size: 12.5px !important;
+  letter-spacing: 0 !important;
+  color: var(--cx-tui-dim) !important;
+}
+:root.cx-on .mm-masthead-url::before { content: " / " !important; color: var(--cx-text-3) !important; }
+:root.cx-on .mm-masthead-qrs { display: none !important; }
+:root.cx-on .mm-masthead-meta {
+  order: 2;
+  margin-left: auto !important;
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 0 8px !important;
+  font-family: var(--cx-mono) !important;
+  font-size: 11px !important;
+  letter-spacing: .01em !important;
+  color: var(--cx-tui-dim) !important;
+}
+:root.cx-on .mm-masthead-meta > * { margin: 0 !important; padding: 0 !important; background: none !important; }
+:root.cx-on .mm-issue {
+  background: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: var(--cx-text-2) !important;
+}
+:root.cx-on .mm-issue::after { content: " ·"; color: var(--cx-line-strong); }
+:root.cx-on .mm-mast-date { font-size: 11px !important; color: var(--cx-tui-dim) !important; }
+:root.cx-on .mm-mast-warn,
+:root.cx-on .mm-mast-warn .mm-sel { font-size: 10.5px !important; color: var(--cx-tui-dim) !important; opacity: .8; }
+:root.cx-on .mm-mast-rule { display: none !important; }
+
+/* 会话节点 */
+:root.cx-on .mm-section {
+  position: relative !important;
+  padding: 24px 0 6px !important;
+  border: 0 !important;
+}
+:root.cx-on .mm-section + .mm-section { border: 0 !important; padding-top: 26px !important; }
+
+/* [01] · 12m */
+:root.cx-on .mm-section::before {
+  content: attr(data-cx-meta);
+  position: absolute;
+  top: 26px;
+  right: 0;
+  font-family: var(--cx-mono);
+  font-size: 11px;
+  letter-spacing: .02em;
+  color: var(--cx-tui-dim);
+  opacity: .8;
+  pointer-events: none;
+}
+:root.cx-on .mm-section:not([data-cx-meta])::before { display: none !important; }
+
+/* ● 消息头 */
+:root.cx-on .mm-section-title {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: baseline !important;
+  gap: 0 8px !important;
+  margin: 0 !important;
+  font-family: var(--cx-mono) !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  color: var(--cx-text) !important;
+}
+:root.cx-on .mm-section-title i { display: none !important; }
+:root.cx-on .mm-section-title::before {
+  content: "●" !important;
+  color: var(--cx-accent) !important;
+  font-size: 9px;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+/* ✳ 思考行 + 斜体英文段落 */
+:root.cx-on .mm-section-title::after {
+  content: "✳ " attr(data-cx-verb) " for " attr(data-cx-secs) "s  (ctrl+o to expand) ~\A" attr(data-cx-think);
+  flex: 0 0 100%;
+  order: 9;
+  margin: 13px 0 15px !important;
+  font-family: var(--cx-mono) !important;
+  font-size: 12.5px !important;
+  font-style: italic !important;
+  font-weight: 400 !important;
+  line-height: 1.86 !important;
+  letter-spacing: 0 !important;
+  color: var(--cx-tui-dim) !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere;
+  animation: cx-fade .3s ease both;
+}
+:root.cx-on .mm-section-title:not([data-cx-verb])::after { display: none !important; }
+
+/* ● Read(...) / └ N items —— 挂在标题后的第一个内容块上 */
+:root.cx-on .mm-section-title + *::before {
+  content: "● " attr(data-cx-tool) "\A  └ " attr(data-cx-toolres);
+  display: block !important;
+  flex: 0 0 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 0 0 16px !important;
+  font-family: var(--cx-mono) !important;
+  font-size: 12px !important;
+  font-style: normal !important;
+  font-weight: 400 !important;
+  line-height: 1.8 !important;
+  letter-spacing: 0 !important;
+  color: var(--cx-text-2) !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere;
+}
+:root.cx-on .mm-section-title + :not([data-cx-tool])::before { display: none !important; }
+/* 第一个内容块本身是 flex 行（.mm-brief / .mm-usage …）或 grid（.mm-terms）时
+   要能整行让位，否则工具行会跟正文并排挤在一起 */
+:root.cx-on .mm-section-title + [data-cx-tool] { flex-wrap: wrap !important; }
+:root.cx-on .mm-section-title + [data-cx-tool]::before {
+  grid-column: 1 / -1 !important;
+  grid-row: 1 !important;
+}
+
+/* [r] reply [l] like [c] link */
+:root.cx-on .mm-section::after {
+  content: "[r] reply   [l] like   [c] link";
+  display: block;
+  margin: 18px 0 0;
+  font-family: var(--cx-mono);
+  font-size: 11px;
+  letter-spacing: .04em;
+  color: var(--cx-tui-dim);
+  opacity: .7;
+}
+
+/* 正文块：去卡片化，只留等宽与留白 */
+:root.cx-on .mm-brief { margin-bottom: 10px !important; }
+:root.cx-on .mm-brief-cat {
+  background: none !important;
+  padding: 0 !important;
+  margin-right: 8px !important;
+  border-radius: 0 !important;
+  font-family: var(--cx-mono) !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  color: var(--cx-accent-ink) !important;
+}
+:root.cx-on .mm-brief-cat::after { content: ":"; color: var(--cx-tui-dim); }
+:root.cx-on .mm-terms { gap: 8px 10px !important; }
+:root.cx-on .mm-term {
+  border: 0 !important;
+  border-left: 1px solid var(--cx-tui-rule) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 4px 0 4px 12px !important;
+}
+:root.cx-on .mm-term b {
+  display: block !important;
+  margin: 0 0 2px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: var(--cx-accent-ink) !important;
+}
+:root.cx-on .mm-quote {
+  padding: 2px 0 2px 14px !important;
+  border-left: 1px solid var(--cx-line-strong) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 1.9 !important;
+}
+:root.cx-on .mm-usage,
+:root.cx-on .mm-para-analysis {
+  border: 0 !important;
+  border-left: 1px solid var(--cx-tui-rule) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 4px 0 4px 12px !important;
+}
+:root.cx-on .mm-usage > b,
+:root.cx-on .mm-para-analysis > b {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--cx-text) !important;
+}
+:root.cx-on .mm-section-title + .mm-usage::before,
+:root.cx-on .mm-section-title + .mm-para-analysis::before { margin-bottom: 10px !important; }
+:root.cx-on .mm-block-title {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--cx-text) !important;
+}
+:root.cx-on .mm-essay-head {
+  margin-bottom: 12px !important;
+  padding-bottom: 10px !important;
+  border-bottom: 1px solid var(--cx-tui-rule) !important;
+}
+:root.cx-on .mm-essay-title {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+:root.cx-on .mm-essay-meta,
+:root.cx-on .mm-usage-themes { font-size: 11px !important; color: var(--cx-tui-dim) !important; }
+:root.cx-on .mm-essay-themes span {
+  background: none !important;
+  padding: 0 8px 0 0 !important;
+  font-size: 11.5px !important;
+  color: var(--cx-tui-dim) !important;
+}
+:root.cx-on .mm-essay-themes span::before { content: "#"; opacity: .6; }
+:root.cx-on .mm-mark-legend {
+  border: 1px solid var(--cx-tui-rule) !important;
+  border-radius: 3px !important;
+  background: transparent !important;
+  padding: 5px 9px !important;
+  margin-bottom: 14px !important;
+  font-size: 11px !important;
+}
+:root.cx-on .mm-mark {
+  border-radius: 2px !important;
+  padding: 0 1px !important;
+  box-shadow: inset 0 -1px 0 currentColor;
+}
+:root.cx-on .mm-essay-para { line-height: 1.95 !important; }
+
+/* 会话尾部：假输入框 + 状态行 */
+:root.cx-on .cx-tui-foot {
+  width: 100%;
+  max-width: 820px;
+  margin: 34px auto 0;
+  font-family: var(--cx-mono);
+}
+:root.cx-on .cx-tui-log { display: flex; flex-direction: column; gap: 14px; }
+:root.cx-on .cx-tui-log:empty { display: none; }
+:root.cx-on .cx-tui-msg { font-size: 13px; line-height: 1.85; color: var(--cx-text); }
+:root.cx-on .cx-tui-user {
+  font-size: 12.5px;
+  color: var(--cx-text-2);
+  margin-bottom: 4px;
+}
+:root.cx-on .cx-tui-user .cx-tui-dot { color: var(--cx-accent); font-size: 9px; margin-right: 6px; }
+:root.cx-on .cx-tui-ago { color: var(--cx-tui-dim); margin-left: 6px; font-size: 11px; }
+:root.cx-on .cx-tui-body { padding-left: 15px; white-space: pre-wrap; overflow-wrap: anywhere; }
+:root.cx-on .cx-tui-think {
+  padding-left: 0;
+  font-size: 12.5px;
+  font-style: italic;
+  line-height: 1.85;
+  color: var(--cx-tui-dim);
+  white-space: pre-wrap;
+}
+:root.cx-on .cx-tui-think-h { display: block; font-style: italic; }
+:root.cx-on .cx-tui-think-p { display: block; }
+:root.cx-on .cx-tui-think-r {
+  display: block;
+  margin-top: 4px;
+  font-size: 11.5px;
+  opacity: .7;
+}
+:root.cx-on .cx-tui-composer {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 9px 12px;
+  border: 1px solid var(--cx-tui-rule);
+  border-radius: 4px;
+  background: transparent;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+:root.cx-on .cx-tui-composer:focus-within {
+  border-color: var(--cx-line-strong);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cx-accent) 12%, transparent);
+}
+:root.cx-on .cx-tui-prompt { color: var(--cx-accent-ink); font-size: 13px; line-height: 1.7; user-select: none; }
+:root.cx-on .cx-tui-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0 !important;
+  outline: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  resize: none !important;
+  overflow: hidden;
+  font-family: var(--cx-mono) !important;
+  font-size: 13px !important;
+  line-height: 1.7 !important;
+  color: var(--cx-text) !important;
+  caret-color: var(--cx-accent);
+  height: 22px;
+}
+:root.cx-on .cx-tui-input::placeholder { color: var(--cx-tui-dim) !important; font-style: italic; }
+:root.cx-on .cx-tui-hint {
+  margin-top: 8px;
+  font-size: 11px;
+  letter-spacing: .02em;
+  color: var(--cx-tui-dim);
+  opacity: .7;
+}
+
+/* 底部状态栏（fixed）：CODEX ~/... ^r reply ... 17:18 */
+:root.cx-on .cx-tui-status {
+  position: fixed;
+  left: 52px;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 26px;
+  padding: 0 14px;
+  border-top: 1px solid var(--cx-tui-rule);
+  background: var(--cx-strip-bg);
+  backdrop-filter: blur(8px);
+  font-family: var(--cx-mono);
+  font-size: 11px;
+  letter-spacing: .02em;
+  color: var(--cx-tui-dim);
+  user-select: none;
+}
+:root.cx-on .cx-tui-status[hidden] { display: none !important; }
+/* 浅色下毛玻璃底会把 11px 灰字压到 3.5:1，换实白底 */
+:root.cx-on[data-theme="light"] .cx-tui-status { background: #ffffff !important; }
+@media (prefers-color-scheme: light) {
+  :root.cx-on:not([data-theme="dark"]) .cx-tui-status { background: #ffffff !important; }
+}
+:root.cx-nostrip .cx-tui-status { left: 0; }
+:root.cx-on .cx-tui-mode {
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--cx-accent);
+  color: var(--cx-on-accent);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+:root.cx-on .cx-tui-status .cx-tui-path { color: var(--cx-text-2); }
+:root.cx-on .cx-tui-status .cx-tui-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+:root.cx-on .cx-tui-status .cx-tui-clock { color: var(--cx-text-2); font-weight: 500; }
+:root.cx-on .cx-tui-live { color: var(--cx-accent); font-size: 8px; }
+@media (max-width: 860px) {
+  :root.cx-on .cx-tui-status .cx-tui-keys { display: none; }
+  :root.cx-on .cx-tui-status { left: 0; }
+}
+/* 详情页里把外观浮动按钮抬高，别被状态栏压住 */
+:root.cx-on.cx-reading .cx-fab { bottom: 44px !important; }
+:root.cx-on.cx-reading .mat-read-scroll { padding-bottom: 120px !important; }
 
 @keyframes cx-fade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes cx-rise { from { opacity: 0; transform: translateY(-6px) scale(.99) } to { opacity: 1; transform: none } }
@@ -1532,6 +1978,286 @@
   }
 
   /* =========================================================
+   * 6.5 素材详情：终端会话视图（TUI）
+   * ---------------------------------------------------------
+   * 站点把这一页渲染成一篇文章（.mm-paper > header + 若干 section），
+   * 我们要的是一串「会话消息」。做法：
+   *   1. 给每个 section 写 data-cx-*（序号/时间、思考动词、耗时、英文思考段、工具调用）
+   *   2. CSS 用三个伪元素把它们渲染成终端行 —— 不往 React 树里插节点
+   *   3. 只在阅读流尾部追加假输入框，另挂一条底部状态栏
+   * 思考文案按小节类型（简报/规范词/金句/案例/人物/范文）分池随机抽，
+   * 工具调用的文件名取自该小节的真实标题，所以看起来像真在读这份稿子。
+   * ========================================================= */
+
+  const TUI_VERBS = [
+    'Contemplated', 'Pondered', 'Whirred', 'Mulled', 'Ruminated', 'Noodled',
+    'Sifted', 'Digested', 'Cogitated', 'Puzzled over', 'Turned over', 'Chewed on'
+  ];
+
+  const TUI_THINK = {
+    brief: [
+      'Three items, all upstream of the usual talking points: industrial profit, installed wind and solar, urban transit. The numbers already carry the argument, so paraphrasing would only dilute them. What the candidate needs is the connective — why these three belong in one paragraph.',
+      'Reading this as a set rather than three separate notes. Macro, energy, livelihood — that ordering is itself a structure worth stealing. The one weak item is transit; it reads like a local pilot dressed up as national policy.',
+      'The phrasing is already compressed to headline length, which is good. Leave the figures untouched and mark the two verbs that carry the evaluative weight. Anything beyond that is decoration.'
+    ],
+    terms: [
+      'These are substitutions, not definitions — each one swaps a flat phrase for a bureaucratic one. Useful only if the original phrase stays visible next to it, so keep the pairs intact instead of flattening them into a list.',
+      'Twelve terms, and maybe half will never appear in a real answer. The ones that earn their place have a mechanism inside: coordination, portability, graded response. The rest is vocabulary posturing.',
+      'Noting how many of these are verbs turned into nouns. That is the register shift examiners reward, but overuse produces prose that cannot move. Flag the two that still keep an actor in them.'
+    ],
+    quote: [
+      'The quote does its work through parallel structure, not sentiment. Keep the two clauses intact and let the candidate supply the case; a paraphrase would lose the only thing worth quoting.',
+      'Tested whether the line survives without its context. It does — general enough to be lifted, specific enough to sound authored. That combination is why it circulates.',
+      'Slightly uneasy about how easily this can be pasted anywhere. A strong quotation holds one idea it cannot let go of; this one holds three, which makes it portable but weak. Use it once, at the turn, never twice.'
+    ],
+    case: [
+      'Twenty-three years, zero casualties — the number is the whole argument, everything after it is method. Expand the mechanism and the number loses its force, so the mechanism gets one clause at most.',
+      'The interesting part is sequencing, not outcome: survey first, model second, engineering third, people last. Most retellings reverse that order because the engineering is the photogenic part.',
+      'There is a temptation to read this as a technology story. It is a coordination story with technology in it. Lead with the institution and let the hardware arrive late, the way it did in reality.'
+    ],
+    figure: [
+      'Seventy-four years old, and the account spends its detail on the injury rather than the decision. That instinct is right — the decision is obvious once stated, the cost is what makes it credible. Keep the cost, cut the adjectives.',
+      'Read against the usual hero template: no professional duty here, no uniform, nothing that obliged him to step in. That absence is the argument. A version that supplies a duty would be weaker.',
+      'One action, one morning, one village. The scale is deliberately small, which is why it works as evidence about ordinary people rather than about institutions. Do not inflate it.'
+    ],
+    essay: [
+      'Structural pass first. Three body paragraphs, each claim then instance then turn — regular enough to be teachable, irregular enough not to read as a template. Mark the seams, not the sentences.',
+      'The thesis puts execution before intent. Most essays in this genre argue the reverse. That inversion is the only thing here worth imitating; the rest is competent filler.',
+      'Counting markers before reading for sense, which is how an examiner actually behaves. Density is high in paragraph two and drops in four — that is where a real answer loses marks, and also where the model is thinnest.'
+    ],
+    fallback: [
+      'Nothing to check against here — the sheet is a daily digest, so the useful move is to take one figure and build outward from it rather than summarise the whole page.',
+      'The obvious answer is to restate the theme. It is also the answer everyone else will write, which makes it worthless. Look for the second-order consequence instead.',
+      'Three candidate angles, none decisive. The one with a mechanism in it is probably worth writing, even if it is the least quotable of the three.'
+    ]
+  };
+
+  const TUI_FILES = {
+    brief: d => 'brief/' + d + '.md',
+    terms: () => 'terms/规范词表.md',
+    quote: () => 'corpus/quotes.md',
+    case: s => 'cases/' + s + '.md',
+    figure: s => 'profiles/' + s + '.md',
+    essay: s => 'essays/' + s + '.md',
+    fallback: d => 'notes/' + d + '.md'
+  };
+
+  const TUI_RES = {
+    brief: '6 items · 1 file',
+    terms: '12 matches · 2 files',
+    quote: '5 matches · 3 files',
+    case: '1 doc · 6 paragraphs',
+    figure: '1 doc · 4 paragraphs',
+    essay: '3 paragraphs · 812 tokens',
+    fallback: '1 doc'
+  };
+
+  const pickOne = arr => arr[Math.floor(Math.random() * arr.length)];
+  const pad2 = n => (n < 10 ? '0' : '') + n;
+
+  /** 小节标题 → 文案池 key */
+  function tuiKind(label) {
+    if (/要闻|简报|时政|政经/.test(label)) return 'brief';
+    if (/规范词|表达/.test(label)) return 'terms';
+    if (/金句/.test(label)) return 'quote';
+    if (/案例/.test(label)) return 'case';
+    if (/人物|典范/.test(label)) return 'figure';
+    if (/范文/.test(label)) return 'essay';
+    return 'fallback';
+  }
+
+  /** 标题压成文件名：去标点空白，留 12 字 */
+  function tuiSlug(s) {
+    const t = String(s || '')
+      .replace(/[《》〈〉“”‘’"'「」『』【】()（）[\]{}]/g, '')
+      .replace(/[，。、；：！？,.;:!?—–~…\s]+/g, '');
+    return (t || 'untitled').slice(0, 12);
+  }
+
+  function tuiTool(kind, label, day) {
+    const f = TUI_FILES[kind] || TUI_FILES.fallback;
+    const arg = (kind === 'brief' || kind === 'fallback') ? day : tuiSlug(label);
+    let call;
+    if (kind === 'terms') call = 'Grep(协同|规范词, terms/)';
+    else if (kind === 'quote') call = 'Grep(金句|quote, corpus/)';
+    else call = 'Read(' + f(arg) + ')';
+    return {
+      call: call,
+      res: (TUI_RES[kind] || TUI_RES.fallback) + '  (ctrl+o to expand)'
+    };
+  }
+
+  let tuiFootEl = null, tuiStatusEl = null, tuiClockEl = null, tuiClockTimer = 0;
+
+  /**
+   * 每 600ms 的低成本巡检：详情页出现就装饰，离开就收起状态栏。
+   * 不用 MutationObserver 监听整棵子树，避免 AI 流式输出时每帧回调。
+   */
+  function ensureReading() {
+    if (!document.body) return;
+    const root = document.documentElement;
+    const paper = q('.mat-root-read .mm-paper') || q('.mm-paper');
+
+    if (!paper) {
+      root.classList.remove('cx-reading');
+      if (tuiStatusEl) tuiStatusEl.hidden = true;
+      return;
+    }
+
+    root.classList.add('cx-reading');
+    const bar = ensureTuiStatus();
+    bar.hidden = false;
+
+    const foot = ensureTuiFoot(q('.mat-read-scroll'));
+    decorateReading(paper, foot);
+
+    const issue = q('.mm-issue', paper);
+    const num = issue && (issue.textContent || '').match(/\d+/);
+    const pathEl = q('.cx-tui-path', bar);
+    if (pathEl) pathEl.textContent = '~/shenlunsucai.com/material' + (num ? '/' + num[0] : '');
+  }
+
+  function decorateReading(paper, foot) {
+    if (!paper || paper.dataset.cxTui === '1') return;
+    paper.dataset.cxTui = '1';
+
+    // 换了一篇素材：上一次的演示草稿不该跟过来
+    if (foot) {
+      const log = q('.cx-tui-log', foot);
+      if (log) log.innerHTML = '';
+    }
+
+    const dateEl = q('.mm-mast-date', paper);
+    const dm = dateEl && (dateEl.textContent || '').match(/\d{4}-\d{2}-\d{2}/);
+    const day = dm ? dm[0] : new Date().toISOString().slice(0, 10);
+
+    qa('.mm-section', paper).forEach((sec, i) => {
+      const titleEl = q('.mm-section-title', sec);
+      const label = titleEl ? (titleEl.textContent || '').replace(/\s+/g, ' ').trim() : '';
+      if (!titleEl || !label) return;
+
+      const kind = tuiKind(label);
+      const pool = TUI_THINK[kind] || TUI_THINK.fallback;
+
+      sec.dataset.cxMeta = '[' + pad2(i + 1) + '] · ' + (3 + Math.floor(Math.random() * 44)) + 'm';
+
+      titleEl.dataset.cxVerb = pickOne(TUI_VERBS);
+      titleEl.dataset.cxSecs = String(14 + Math.floor(Math.random() * 62));
+      titleEl.dataset.cxThink = pickOne(pool);
+
+      const first = titleEl.nextElementSibling;
+      if (first) {
+        const t = tuiTool(kind, label, day);
+        first.dataset.cxTool = t.call;
+        first.dataset.cxToolres = t.res;
+      }
+    });
+  }
+
+  function ensureTuiFoot(scroller) {
+    if (!scroller) return null;
+    if (tuiFootEl && tuiFootEl.isConnected) return tuiFootEl;
+
+    tuiFootEl = document.createElement('div');
+    tuiFootEl.className = 'cx-tui-foot';
+    tuiFootEl.innerHTML =
+      '<div class="cx-tui-log" aria-live="polite"></div>' +
+      '<div class="cx-tui-composer">' +
+        '<span class="cx-tui-prompt" aria-hidden="true">}</span>' +
+        '<textarea class="cx-tui-input" rows="1" spellcheck="false" ' +
+          'aria-label="回复（演示用，不会发送）" ' +
+          'placeholder="reply to thread…   (Enter 发送, Shift+Enter 换行)"></textarea>' +
+      '</div>' +
+      '<div class="cx-tui-hint">Enter 发送 · Shift+Enter 换行 —— 皮肤装饰，草稿只留在本地，刷新即消失</div>';
+
+    scroller.appendChild(tuiFootEl);
+    bindTuiComposer(tuiFootEl);
+    return tuiFootEl;
+  }
+
+  function bindTuiComposer(foot) {
+    const ta = q('.cx-tui-input', foot);
+    const log = q('.cx-tui-log', foot);
+    if (!ta || !log) return;
+
+    const grow = () => {
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(150, ta.scrollHeight || 22) + 'px';
+    };
+
+    ta.addEventListener('input', grow);
+    ta.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+        e.preventDefault();
+        postTuiLog(log, ta);
+        grow();
+      } else if (e.key === 'Escape') {
+        ta.blur();
+      }
+    });
+  }
+
+  /** 回车后的「假回复」：一条自己的消息 + 一次随机长度的思考 */
+  function postTuiLog(log, ta) {
+    const text = (ta.value || '').trim();
+    if (!text) return;
+    ta.value = '';
+
+    const msg = document.createElement('div');
+    msg.className = 'cx-tui-msg';
+    msg.innerHTML =
+      '<div class="cx-tui-user"><span class="cx-tui-dot">●</span>you<span class="cx-tui-ago">· now</span></div>' +
+      '<div class="cx-tui-body"></div>';
+    q('.cx-tui-body', msg).textContent = text;
+    log.appendChild(msg);
+
+    const verb = pickOne(TUI_VERBS);
+    const secs = 2 + Math.floor(Math.random() * 4);
+    const think = document.createElement('div');
+    think.className = 'cx-tui-think';
+    think.textContent = '✳ ' + verb + '…';
+    log.appendChild(think);
+    if (msg.scrollIntoView) msg.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+    setTimeout(() => {
+      if (!think.isConnected) return;
+      think.innerHTML =
+        '<span class="cx-tui-think-h">✳ ' + verb + ' for ' + secs + 's  (ctrl+o to expand) ~</span>' +
+        '<span class="cx-tui-think-p"></span>' +
+        '<span class="cx-tui-think-r">└ draft only — nothing was sent</span>';
+      const p = q('.cx-tui-think-p', think);
+      if (p) p.textContent = pickOne(TUI_THINK.fallback);
+    }, 900);
+  }
+
+  function ensureTuiStatus() {
+    if (tuiStatusEl && tuiStatusEl.isConnected) return tuiStatusEl;
+
+    tuiStatusEl = document.createElement('div');
+    tuiStatusEl.className = 'cx-tui-status';
+    tuiStatusEl.hidden = true;
+    tuiStatusEl.innerHTML =
+      '<span class="cx-tui-mode">CODEX</span>' +
+      '<span class="cx-tui-path">~/shenlunsucai.com/material</span>' +
+      '<span class="cx-tui-keys">^r reply · esc back · ? shortcuts</span>' +
+      '<span class="cx-tui-right"><span class="cx-tui-live">●</span>local draft' +
+        '<b class="cx-tui-clock">--:--</b></span>';
+    document.body.appendChild(tuiStatusEl);
+
+    tuiClockEl = q('.cx-tui-clock', tuiStatusEl);
+    tickClock();
+    clearInterval(tuiClockTimer);
+    tuiClockTimer = setInterval(tickClock, 30000);
+    return tuiStatusEl;
+  }
+
+  function tickClock() {
+    if (!tuiClockEl) return;
+    const d = new Date();
+    tuiClockEl.textContent = pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+
+  /* =========================================================
    * 7. 外观面板
    * ========================================================= */
 
@@ -1737,6 +2463,10 @@
         else { syncBadge(); syncActiveStrip(); }
       }
     }, 2500);
+
+    // 素材详情（.mm-paper）是 React 深层渲染，不经过 #root 的 childList，
+    // 单独低频巡检；函数内部命中即早退，成本只有一次 querySelector
+    setInterval(ensureReading, 600);
 
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', observeRoot, { once: true });
