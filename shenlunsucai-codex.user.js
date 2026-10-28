@@ -1,9 +1,13 @@
 // ==UserScript==
 // @name         shencaiyoudao · Codex Skin
 // @namespace    https://shenlunsucai.com/
-// @version      1.2.0
+// @version      1.3.0
 // @description  把「申材有道」重绘为 Codex 桌面应用风格：52px 图标条 + 双层左侧栏、令牌级配色重映射、⌘K 跳转面板、强调色/明暗/栏宽可调；素材页的 AI 解读面板与「问 AI」抽屉按 Codex 对话形态重绘，素材详情页的报刊排版改成无衬线阅读栏。只改外观与导航增强，不碰站点数据。
 // @author       local
+// @homepageURL  https://github.com/Plucann/user-script/blob/main/shenlunsucai-codex.user.js
+// @supportURL   https://github.com/Plucann/user-script
+// @updateURL    https://raw.githubusercontent.com/Plucann/user-script/refs/heads/main/shenlunsucai-codex.user.js
+// @downloadURL  https://raw.githubusercontent.com/Plucann/user-script/refs/heads/main/shenlunsucai-codex.user.js
 // @match        https://shenlunsucai.com/app
 // @match        https://shenlunsucai.com/app/*
 // @match        https://www.shenlunsucai.com/app
