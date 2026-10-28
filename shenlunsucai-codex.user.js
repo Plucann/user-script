@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         shencaiyoudao · Codex Skin
 // @namespace    https://shenlunsucai.com/
-// @version      1.1.0
-// @description  把「申材有道」重绘为 Codex 桌面应用风格：52px 图标条 + 双层左侧栏、令牌级配色重映射、⌘K 跳转面板、强调色/明暗/栏宽可调；素材页的 AI 解读面板与「问 AI」抽屉也按 Codex 对话形态重绘。只改外观与导航增强，不碰站点数据。
+// @version      1.2.0
+// @description  把「申材有道」重绘为 Codex 桌面应用风格：52px 图标条 + 双层左侧栏、令牌级配色重映射、⌘K 跳转面板、强调色/明暗/栏宽可调；素材页的 AI 解读面板与「问 AI」抽屉按 Codex 对话形态重绘，素材详情页的报刊排版改成无衬线阅读栏。只改外观与导航增强，不碰站点数据。
 // @author       local
 // @match        https://shenlunsucai.com/app
 // @match        https://shenlunsucai.com/app/*
@@ -143,7 +143,7 @@
   --cx-elevated: #ffffff;
   --cx-text: #1b1c1e;
   --cx-text-2: #5f6165;
-  --cx-text-3: #74767b;
+  --cx-text-3: #717378;
   --cx-line: #1b1c1e14;
   --cx-line-strong: #1b1c1e26;
   --cx-hover: #1b1c1e08;
@@ -162,7 +162,7 @@
     --cx-elevated: #ffffff;
     --cx-text: #1b1c1e;
     --cx-text-2: #5f6165;
-    --cx-text-3: #74767b;
+    --cx-text-3: #717378;
     --cx-line: #1b1c1e14;
     --cx-line-strong: #1b1c1e26;
     --cx-hover: #1b1c1e08;
@@ -881,6 +881,323 @@
 :root.cx-on .mat-ai-composer-actions .mat-action:not(.is-primary):hover:not(:disabled) {
   background: var(--cx-hover) !important;
   border-color: var(--cx-line-strong) !important;
+}
+
+/* ---------- 1.13 素材详情页「阅读版」（.mm-* 体系） ----------
+ * 这一页是站点自带的「报刊」排版，靠自己的一层令牌：
+ *   --mm-paper/--mm-page/--mm-ink/--mm-ink-2/--mm-line/--mm-accent
+ * 所以先整层重映射成 Codex 灰度 + 当前强调色，再收拾骨架：
+ * 去掉纸张卡片与双线刊头、正文转无衬线、术语块由「左边框」改「卡片」、
+ * 金句改左竖线引文、段析改中性卡。5 色高亮标记是语义标记，保留。
+ */
+:root.cx-on {
+  --mm-paper: var(--cx-raised) !important;
+  --mm-page: var(--cx-bg) !important;
+  --mm-ink: var(--cx-text) !important;
+  --mm-ink-2: var(--cx-text-2) !important;
+  --mm-line: var(--cx-line) !important;
+  --mm-accent: var(--cx-accent) !important;
+
+  /* 派生令牌：强调色当「正文级小字」用时需要更高对比度。
+     浅色下 #2a98ff 压在白底上只有 2.99:1，压深到 ~4.8:1；深色保持原值。 */
+  --cx-accent-ink: var(--cx-accent);
+}
+:root.cx-on[data-theme="light"] {
+  --cx-accent-ink: color-mix(in srgb, var(--cx-accent) 74%, #0b1a2a);
+}
+@media (prefers-color-scheme: light) {
+  :root.cx-on:not([data-theme="dark"]) {
+    --cx-accent-ink: color-mix(in srgb, var(--cx-accent) 74%, #0b1a2a);
+  }
+}
+
+/* 站点的 --c-gold-deep/--c-amber-deep/--c-blue-deep 只有浅色值，
+   深色下把它们压在自己的深色底片上只有 3.2~4.0:1。改成取各自的 bright 值，
+   一处修好会同时覆盖 .mm-mark / .mm-analysis-tag / .mm-mark-legend-swatch。 */
+:root.cx-on:not([data-theme="light"]) {
+  --c-gold-deep: var(--c-gold-bright);
+  --c-amber-deep: var(--c-amber-bright);
+  /* 蓝色 bright 在深色底片上仍只有 3.4:1，再提亮一档 */
+  --c-blue-deep: color-mix(in srgb, var(--c-blue-bright) 62%, #ffffff);
+}
+/* 浅色下 --c-blue-deep 压在自己的浅蓝底上只有 4.3~4.5:1，压深一档 */
+:root.cx-on[data-theme="light"] .mm-mark.is-blue,
+:root.cx-on[data-theme="light"] .mm-mark.is-fill-blue,
+:root.cx-on[data-theme="light"] .mm-analysis-tag.is-blue,
+:root.cx-on[data-theme="light"] .mm-analysis-tag.is-fill-blue,
+:root.cx-on[data-theme="light"] .mm-mark-legend-swatch.is-blue,
+:root.cx-on[data-theme="light"] .mm-mark-legend-swatch.is-fill-blue { color: #3d5aa8 !important; }
+@media (prefers-color-scheme: light) {
+  :root.cx-on:not([data-theme="dark"]) .mm-mark.is-blue,
+  :root.cx-on:not([data-theme="dark"]) .mm-mark.is-fill-blue,
+  :root.cx-on:not([data-theme="dark"]) .mm-analysis-tag.is-blue,
+  :root.cx-on:not([data-theme="dark"]) .mm-analysis-tag.is-fill-blue,
+  :root.cx-on:not([data-theme="dark"]) .mm-mark-legend-swatch.is-blue,
+  :root.cx-on:not([data-theme="dark"]) .mm-mark-legend-swatch.is-fill-blue { color: #3d5aa8 !important; }
+}
+/* 站点的 --c-blue-soft 指向 --accent-soft，换成琥珀/酒红强调色后
+   「分层论点 / 做法举措」会跟着变色，五种标记就撞色了。这里钉回蓝系。 */
+:root.cx-on .mm-mark.is-blue,
+:root.cx-on .mm-mark.is-fill-blue,
+:root.cx-on .mm-analysis-tag.is-blue,
+:root.cx-on .mm-analysis-tag.is-fill-blue,
+:root.cx-on .mm-mark-legend-swatch.is-blue,
+:root.cx-on .mm-mark-legend-swatch.is-fill-blue {
+  background-color: color-mix(in srgb, var(--c-blue) 14%, transparent) !important;
+}
+
+/* 顶部工具栏：全部压成 ghost 按钮，只留「AI 解读」一个实心药丸 */
+:root.cx-on .mat-read-top {
+  min-height: 52px !important;
+  padding: 0 16px 0 12px !important;
+  border-bottom: 1px solid var(--cx-line) !important;
+  background: transparent !important;
+  gap: 8px !important;
+}
+:root.cx-on .mat-read-actions { gap: 2px !important; }
+:root.cx-on .mat-read-top .ps-chrome-back,
+:root.cx-on .mat-read-actions .mat-action {
+  height: 30px !important;
+  padding: 0 9px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: var(--cx-text-2) !important;
+  font-size: 12.5px !important;
+  font-weight: 400 !important;
+}
+:root.cx-on .mat-read-top .ps-chrome-back:hover,
+:root.cx-on .mat-read-actions .mat-action:hover:not(:disabled) {
+  background: var(--cx-hover) !important;
+  color: var(--cx-text) !important;
+}
+:root.cx-on .mat-read-actions .pa-iit-btn {
+  height: 30px !important;
+  padding: 0 12px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: var(--cx-accent) !important;
+  color: var(--cx-on-accent) !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+}
+:root.cx-on .mat-read-actions .pa-iit-btn:hover:not(:disabled) {
+  filter: brightness(1.06) !important;
+  background: var(--cx-accent) !important;
+}
+
+/* 阅读区：纸张卡片取消，改成居中的窄栏内容流 */
+:root.cx-on .mat-read-scroll { padding: 26px 40px 72px !important; }
+:root.cx-on .mm-paper {
+  max-width: 780px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-family: var(--cx-font) !important;
+}
+
+/* 刊头：大字报头保留衬线（当 logo 用），其余全部收小压灰 */
+:root.cx-on .mm-masthead-brand h1 {
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  letter-spacing: .04em !important;
+  color: var(--cx-accent-ink) !important;
+}
+:root.cx-on .mm-masthead-url {
+  font-size: 11px !important;
+  color: var(--cx-text-3) !important;
+  letter-spacing: .02em !important;
+}
+:root.cx-on .mm-qr img {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 6px !important;
+  border-color: var(--cx-line) !important;
+  opacity: .55;
+  transition: opacity .15s;
+}
+:root.cx-on .mm-qr:hover img { opacity: 1; }
+:root.cx-on .mm-issue {
+  background: var(--cx-raised-2) !important;
+  color: var(--cx-text-2) !important;
+  padding: 2px 9px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  border-radius: 999px !important;
+}
+:root.cx-on .mm-mast-date { font-size: 11.5px !important; color: var(--cx-text-3) !important; }
+:root.cx-on .mm-mast-warn, :root.cx-on .mm-mast-warn .mm-sel {
+  font-size: 11px !important;
+  color: var(--cx-text-3) !important;
+}
+:root.cx-on .mm-mast-rule .is-thick {
+  height: 1px !important;
+  background: var(--cx-line-strong) !important;
+}
+:root.cx-on .mm-mast-rule .is-thin { display: none !important; }
+
+/* 分节：去掉虚线分隔，靠留白分段；标题不再用衬线粗体 + 红竖条 */
+:root.cx-on .mm-section { padding: 24px 0 2px !important; }
+:root.cx-on .mm-section + .mm-section { border-top: 0 !important; }
+:root.cx-on .mm-section-title {
+  font-family: var(--cx-font) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: .01em !important;
+  color: var(--cx-text) !important;
+  gap: 8px !important;
+  margin: 0 0 12px !important;
+}
+:root.cx-on .mm-section-title i {
+  width: 3px !important;
+  height: 13px !important;
+  border-radius: 2px !important;
+  background: var(--cx-accent) !important;
+}
+
+/* 要闻简报：分类胶囊改中性 chip，正文转无衬线 */
+:root.cx-on .mm-brief { margin-bottom: 8px !important; }
+:root.cx-on .mm-brief-cat {
+  background: var(--cx-raised-2) !important;
+  color: var(--cx-text-2) !important;
+  border-radius: 6px !important;
+  padding: 1px 7px !important;
+  margin-right: 10px !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+}
+:root.cx-on .mm-brief p,
+:root.cx-on .mm-term p {
+  font-family: var(--cx-font) !important;
+  font-size: 14px !important;
+  line-height: 1.78 !important;
+  color: var(--cx-text-2) !important;
+}
+
+/* 高频表达规范：左边框 → 卡片，术语名单独成行 */
+:root.cx-on .mm-terms { gap: 10px 12px !important; }
+:root.cx-on .mm-term {
+  border: 1px solid var(--cx-line) !important;
+  border-radius: 10px !important;
+  background: var(--cx-raised) !important;
+  padding: 11px 13px !important;
+}
+:root.cx-on .mm-term b {
+  display: block !important;
+  margin: 0 0 4px !important;
+  color: var(--cx-accent-ink) !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+}
+
+/* 金句：渐变底 + 粗红边 → 左竖线引文 */
+:root.cx-on .mm-quote {
+  background: transparent !important;
+  border-left: 2px solid var(--cx-line-strong) !important;
+  border-radius: 0 !important;
+  text-align: left !important;
+  padding: 4px 0 4px 16px !important;
+  margin: 2px 0 14px !important;
+  font-family: var(--cx-font) !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  line-height: 1.85 !important;
+  color: var(--cx-text) !important;
+}
+
+/* 运用示例 / 段析：统一成中性小卡 */
+:root.cx-on .mm-usage {
+  border: 1px solid var(--cx-line) !important;
+  border-radius: 10px !important;
+  background: var(--cx-raised) !important;
+  padding: 12px 14px !important;
+}
+:root.cx-on .mm-usage > b {
+  color: var(--cx-text) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  margin-bottom: 6px !important;
+}
+:root.cx-on .mm-usage p {
+  font-family: var(--cx-font) !important;
+  font-size: 13px !important;
+  line-height: 1.8 !important;
+  color: var(--cx-text-2) !important;
+}
+:root.cx-on .mm-usage-themes { color: var(--cx-text-3) !important; font-size: 12px !important; }
+
+/* 热点案例 / 人物典范 */
+:root.cx-on .mm-block-title {
+  font-family: var(--cx-font) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--cx-text) !important;
+}
+:root.cx-on .mm-body-text {
+  font-family: var(--cx-font) !important;
+  font-size: 14px !important;
+  line-height: 1.88 !important;
+  color: var(--cx-text-2) !important;
+}
+
+/* 范文：标题居中 → 左对齐，用一条细线跟正文分层 */
+:root.cx-on .mm-essay-head {
+  text-align: left !important;
+  margin-bottom: 14px !important;
+  padding-bottom: 12px !important;
+  border-bottom: 1px solid var(--cx-line) !important;
+}
+:root.cx-on .mm-essay-title {
+  font-family: var(--cx-font) !important;
+  font-size: 17px !important;
+  font-weight: 600 !important;
+  letter-spacing: .01em !important;
+  color: var(--cx-text) !important;
+}
+:root.cx-on .mm-essay-meta { font-size: 11.5px !important; color: var(--cx-text-3) !important; }
+:root.cx-on .mm-essay-themes span {
+  background: var(--cx-raised-2) !important;
+  color: var(--cx-text-2) !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+}
+:root.cx-on .mm-mark-legend {
+  border: 1px solid var(--cx-line) !important;
+  border-radius: 8px !important;
+  background: var(--cx-raised) !important;
+  padding: 6px 10px !important;
+  margin-bottom: 14px !important;
+  font-size: 11.5px !important;
+  color: var(--cx-text-3) !important;
+}
+:root.cx-on .mm-para-analysis {
+  border: 1px solid var(--cx-line) !important;
+  border-left: 2px solid var(--cx-accent) !important;
+  border-radius: 8px !important;
+  background: var(--cx-raised) !important;
+  padding: 10px 13px !important;
+}
+:root.cx-on .mm-para-analysis > b {
+  color: var(--cx-text) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+:root.cx-on .mm-para-analysis p {
+  font-family: var(--cx-font) !important;
+  font-size: 12.5px !important;
+  line-height: 1.75 !important;
+  color: var(--cx-text-2) !important;
+}
+
+/* 窄视口：收窄留白，避免正文被挤成细条 */
+@media (max-width: 1180px) {
+  :root.cx-on .mat-read-scroll { padding: 20px 22px 56px !important; }
+}
+@media (max-width: 860px) {
+  :root.cx-on .mat-read-scroll { padding: 16px 14px 44px !important; }
+  :root.cx-on .mat-read-actions .mat-action span { display: none; }
 }
 
 @keyframes cx-fade { from { opacity: 0 } to { opacity: 1 } }
