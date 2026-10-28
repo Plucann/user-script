@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         shencaiyoudao · Codex Skin
 // @namespace    https://shenlunsucai.com/
-// @version      1.4.0
+// @version      1.5.0
 // @description  把「申材有道」重绘为 Codex 桌面应用风格：52px 图标条 + 双层左侧栏、令牌级配色重映射、⌘K 跳转面板、强调色/明暗/栏宽可调；素材页的 AI 解读面板与「问 AI」抽屉按 Codex 对话形态重绘，素材详情页改成等宽终端会话流（随机英文思考块、工具调用行、回复框与状态栏）。只改外观与导航增强，不碰站点数据。
 // @author       local
 // @homepageURL  https://github.com/Plucann/user-script/blob/main/shenlunsucai-codex.user.js
@@ -262,7 +262,7 @@
   border: 1px solid var(--cx-line-strong, #ffffff26);
   background: linear-gradient(160deg, color-mix(in srgb, var(--cx-accent) 26%, transparent), transparent 70%);
   color: var(--cx-text, #ececec);
-  font-size: 14px; font-weight: 700; letter-spacing: 0;
+  font-size: 9.5px; font-weight: 700; letter-spacing: -.02em;
   cursor: pointer;
   transition: border-color .14s ease, transform .14s ease;
 }
@@ -293,7 +293,32 @@
   gap: 8px;
 }
 :root.cx-on .nav-brand .mark { width: 24px; height: 24px; border-radius: 7px; }
-:root.cx-on .nav-brand .title { color: var(--cx-text); }
+/* 站点 logo 是「申材有道」印章，会被脚本换成 GPT 徽标 */
+:root.cx-on .nav-brand .cx-mark-gpt {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  border: 1px solid var(--cx-line-strong);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--cx-accent) 28%, transparent), transparent 72%);
+  color: var(--cx-text);
+  font-family: var(--cx-font);
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1;
+}
+:root.cx-on .nav-brand .title {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--cx-text);
+  white-space: nowrap;
+  overflow: hidden;
+}
+/* 站点的「更新提示占位」会把品牌名挤到只剩几十像素，展开时看着像空白 */
+:root.cx-on .nav-brand .upd-slot { display: none !important; }
 
 :root.cx-on .nav-tools { gap: 4px; margin-bottom: 6px; }
 :root.cx-on .nav-new-chat {
@@ -1222,16 +1247,20 @@
   --cx-tui-rule: var(--cx-line);
 }
 
-/* 阅读区底色：终端要比应用外壳更深一档（用 .cx-reading 限定，只作用于素材详情） */
-:root.cx-on.cx-reading .mat-read-body { background: var(--cx-bg) !important; }
-:root.cx-on.cx-reading[data-theme="dark"] .mat-read-body { background: #0a0b0c !important; }
-:root.cx-on.cx-reading[data-theme="light"] .mat-read-body { background: #fbfbf8 !important; }
+/* 阅读区底色：终端要比应用外壳更深一档（用 .cx-reading 限定，只作用于素材详情）。
+   --tui-surface 同时给悬浮输入坞的渐隐遮罩取色，两处必须一致才看不出接缝。 */
+:root.cx-on.cx-reading {
+  --tui-surface: var(--cx-bg);
+}
+:root.cx-on.cx-reading[data-theme="dark"] { --tui-surface: #0a0b0c; }
+:root.cx-on.cx-reading[data-theme="light"] { --tui-surface: #fbfbf8; }
 @media (prefers-color-scheme: dark) {
-  :root.cx-on.cx-reading:not([data-theme="light"]) .mat-read-body { background: #0a0b0c !important; }
+  :root.cx-on.cx-reading:not([data-theme="light"]) { --tui-surface: #0a0b0c; }
 }
 @media (prefers-color-scheme: light) {
-  :root.cx-on.cx-reading:not([data-theme="dark"]) .mat-read-body { background: #fbfbf8 !important; }
+  :root.cx-on.cx-reading:not([data-theme="dark"]) { --tui-surface: #fbfbf8; }
 }
+:root.cx-on.cx-reading .mat-read-body { background: var(--tui-surface) !important; }
 
 /* 顶部工具栏：等宽、方角、去掉装饰 */
 :root.cx-on .mat-read-top {
@@ -1524,14 +1553,41 @@
 }
 :root.cx-on .mm-essay-para { line-height: 1.95 !important; }
 
-/* 会话尾部：假输入框 + 状态行 */
-:root.cx-on .cx-tui-foot {
+/* 悬浮输入坞：贴在状态栏之上，背后做渐隐遮罩，正文从遮罩里滚过去。
+   left/right 由脚本按滚动容器的实际位置写入，侧栏折叠/展开都能跟正文列对齐。 */
+:root.cx-on .cx-tui-dock {
+  position: fixed;
+  left: 52px;
+  right: 0;
+  bottom: 26px;
+  z-index: 39;
+  padding: 46px 40px 8px;
+  /* 除顶部 30px 渐隐带外全部实色，否则正文会从输入坞里透出来 */
+  background: linear-gradient(to top,
+    var(--tui-surface) 0,
+    var(--tui-surface) calc(100% - 30px),
+    color-mix(in srgb, var(--tui-surface) 42%, transparent) calc(100% - 8px),
+    transparent 100%);
+  font-family: var(--cx-mono);
+  pointer-events: none;   /* 渐隐区不挡住阅读区的点击 */
+}
+:root.cx-on .cx-tui-dock[hidden] { display: none !important; }
+:root.cx-on .cx-tui-dock-in {
   width: 100%;
   max-width: 820px;
-  margin: 34px auto 0;
-  font-family: var(--cx-mono);
+  margin: 0 auto;
+  pointer-events: auto;
 }
-:root.cx-on .cx-tui-log { display: flex; flex-direction: column; gap: 14px; }
+:root.cx-on .cx-tui-log {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 34vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
 :root.cx-on .cx-tui-log:empty { display: none; }
 :root.cx-on .cx-tui-msg { font-size: 13px; line-height: 1.85; color: var(--cx-text); }
 :root.cx-on .cx-tui-user {
@@ -1558,20 +1614,28 @@
   font-size: 11.5px;
   opacity: .7;
 }
+/* 输入框本体是一张浮起的卡片 */
 :root.cx-on .cx-tui-composer {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  margin-top: 14px;
-  padding: 9px 12px;
-  border: 1px solid var(--cx-tui-rule);
-  border-radius: 4px;
-  background: transparent;
+  margin-top: 2px;
+  padding: 10px 13px;
+  border: 1px solid var(--cx-line-strong);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--tui-surface) 78%, var(--cx-text) 9%);
+  box-shadow: 0 14px 34px -22px rgba(0, 0, 0, .8);
   transition: border-color .15s ease, box-shadow .15s ease;
 }
+/* 浅色下卡片要比页面更白才浮得起来 */
+:root.cx-on[data-theme="light"] .cx-tui-composer { background: #ffffff; }
+@media (prefers-color-scheme: light) {
+  :root.cx-on:not([data-theme="dark"]) .cx-tui-composer { background: #ffffff; }
+}
 :root.cx-on .cx-tui-composer:focus-within {
-  border-color: var(--cx-line-strong);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cx-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--cx-accent) 45%, var(--cx-line-strong));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cx-accent) 12%, transparent),
+              0 14px 34px -22px rgba(0, 0, 0, .8);
 }
 :root.cx-on .cx-tui-prompt { color: var(--cx-accent-ink); font-size: 13px; line-height: 1.7; user-select: none; }
 :root.cx-on .cx-tui-input {
@@ -1594,9 +1658,10 @@
 }
 :root.cx-on .cx-tui-input::placeholder { color: var(--cx-tui-dim) !important; font-style: italic; }
 :root.cx-on .cx-tui-hint {
-  margin-top: 8px;
+  margin-top: 7px;
   font-size: 11px;
   letter-spacing: .02em;
+  text-align: center;
   color: var(--cx-tui-dim);
   opacity: .7;
 }
@@ -1645,10 +1710,13 @@
 @media (max-width: 860px) {
   :root.cx-on .cx-tui-status .cx-tui-keys { display: none; }
   :root.cx-on .cx-tui-status { left: 0; }
+  :root.cx-on .cx-tui-dock { left: 0; padding: 40px 14px 6px; }
 }
-/* 详情页里把外观浮动按钮抬高，别被状态栏压住 */
-:root.cx-on.cx-reading .cx-fab { bottom: 44px !important; }
-:root.cx-on.cx-reading .mat-read-scroll { padding-bottom: 120px !important; }
+/* 详情页里把外观浮动按钮抬高，别被输入坞/状态栏压住 */
+:root.cx-on.cx-reading .cx-fab { bottom: 150px !important; }
+/* 悬浮输入坞占掉底部一段，滚动区按它的实际高度留空间（脚本维护 --tui-pad-b），
+   保证滚到底时最后一行正文不会被盖住 */
+:root.cx-on.cx-reading .mat-read-scroll { padding-bottom: var(--tui-pad-b, 190px) !important; }
 
 @keyframes cx-fade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes cx-rise { from { opacity: 0; transform: translateY(-6px) scale(.99) } to { opacity: 1; transform: none } }
@@ -1795,7 +1863,8 @@
     el.setAttribute('role', 'toolbar');
     el.setAttribute('aria-label', '快捷工具条');
     el.innerHTML =
-      '<div class="cx-brand" title="申材有道 · 回到首页" role="button" tabindex="0">申</div>' +
+      '<div class="cx-brand" title="ChatGPT · 回到首页" role="button" tabindex="0">' +
+        '<span aria-hidden="true">GPT</span></div>' +
       '<button class="cx-strip-btn" data-act="new" title="新对话" aria-label="新对话">' + svg(P.plus) + '</button>' +
       '<button class="cx-strip-btn" data-act="search" title="快速跳转（Ctrl/⌘ K）" aria-label="快速跳转">' + svg(P.search) + '</button>' +
       '<button class="cx-strip-btn" data-act="bell" title="消息中心" aria-label="消息中心">' + svg(P.bell) +
@@ -1835,6 +1904,26 @@
     const txt = src && !src.hidden ? (src.textContent || '').trim() : '';
     badge.hidden = !txt;
     badge.textContent = txt;
+  }
+
+  /**
+   * 站点侧栏顶部的品牌换成 ChatGPT：文字改名 + 把「申材有道」印章图标换成 GPT 徽标。
+   * React 重渲染会把两者写回原样，所以放在每次巡检里校正（一次比较，成本可忽略）。
+   */
+  const BRAND_NAME = 'ChatGPT';
+
+  function syncBrand() {
+    const title = q('.nav-brand .title');
+    if (title && title.textContent !== BRAND_NAME) title.textContent = BRAND_NAME;
+
+    const mark = q('.nav-brand .mark');
+    if (mark && mark.tagName === 'IMG') {
+      const chip = document.createElement('span');
+      chip.className = 'mark cx-mark-gpt';
+      chip.setAttribute('aria-hidden', 'true');
+      chip.textContent = 'GPT';
+      mark.replaceWith(chip);
+    }
   }
 
   function syncThemeIcon() {
@@ -2087,10 +2176,10 @@
     };
   }
 
-  let tuiFootEl = null, tuiStatusEl = null, tuiClockEl = null, tuiClockTimer = 0;
+  let tuiDock = null, tuiStatusEl = null, tuiClockEl = null, tuiClockTimer = 0;
 
   /**
-   * 每 600ms 的低成本巡检：详情页出现就装饰，离开就收起状态栏。
+   * 每 600ms 的低成本巡检：详情页出现就装饰，离开就收起输入坞和状态栏。
    * 不用 MutationObserver 监听整棵子树，避免 AI 流式输出时每帧回调。
    */
   function ensureReading() {
@@ -2101,6 +2190,7 @@
     if (!paper) {
       root.classList.remove('cx-reading');
       if (tuiStatusEl) tuiStatusEl.hidden = true;
+      if (tuiDock) tuiDock.hidden = true;
       return;
     }
 
@@ -2108,8 +2198,10 @@
     const bar = ensureTuiStatus();
     bar.hidden = false;
 
-    const foot = ensureTuiFoot(q('.mat-read-scroll'));
-    decorateReading(paper, foot);
+    const dock = ensureTuiDock();
+    dock.hidden = false;
+    syncDockBox(dock);
+    decorateReading(paper, dock);
 
     const issue = q('.mm-issue', paper);
     const num = issue && (issue.textContent || '').match(/\d+/);
@@ -2154,25 +2246,46 @@
     });
   }
 
-  function ensureTuiFoot(scroller) {
-    if (!scroller) return null;
-    if (tuiFootEl && tuiFootEl.isConnected) return tuiFootEl;
+  /** 输入坞跟正文列对齐，并按它的实际高度给滚动区留底部空间 */
+  function syncDockBox(dock) {
+    const sc = q('.mat-read-scroll');
+    if (!sc) return;
+    const r = sc.getBoundingClientRect();
+    const l = Math.round(r.left);
+    const rt = Math.round(Math.max(0, window.innerWidth - r.right));
+    if (dock.dataset.bl !== String(l)) { dock.dataset.bl = String(l); dock.style.left = l + 'px'; }
+    if (dock.dataset.br !== String(rt)) { dock.dataset.br = String(rt); dock.style.right = rt + 'px'; }
 
-    tuiFootEl = document.createElement('div');
-    tuiFootEl.className = 'cx-tui-foot';
-    tuiFootEl.innerHTML =
-      '<div class="cx-tui-log" aria-live="polite"></div>' +
-      '<div class="cx-tui-composer">' +
-        '<span class="cx-tui-prompt" aria-hidden="true">}</span>' +
-        '<textarea class="cx-tui-input" rows="1" spellcheck="false" ' +
-          'aria-label="回复（演示用，不会发送）" ' +
-          'placeholder="reply to thread…   (Enter 发送, Shift+Enter 换行)"></textarea>' +
-      '</div>' +
-      '<div class="cx-tui-hint">Enter 发送 · Shift+Enter 换行 —— 皮肤装饰，草稿只留在本地，刷新即消失</div>';
+    // 演示回复会让输入坞长高，底部留白要跟着走，否则最后一段正文永远滚不出来
+    const pad = String(Math.round(dock.offsetHeight) + 24);
+    if (dock.dataset.bp !== pad) {
+      dock.dataset.bp = pad;
+      document.documentElement.style.setProperty('--tui-pad-b', pad + 'px');
+    }
+  }
 
-    scroller.appendChild(tuiFootEl);
-    bindTuiComposer(tuiFootEl);
-    return tuiFootEl;
+  /** 悬浮输入坞：挂在 body 上（不进 React 的滚动容器，切素材也不会被重建） */
+  function ensureTuiDock() {
+    if (tuiDock && tuiDock.isConnected) return tuiDock;
+
+    tuiDock = document.createElement('div');
+    tuiDock.className = 'cx-tui-dock';
+    tuiDock.hidden = true;
+    tuiDock.innerHTML =
+      '<div class="cx-tui-dock-in">' +
+        '<div class="cx-tui-log" aria-live="polite"></div>' +
+        '<div class="cx-tui-composer">' +
+          '<span class="cx-tui-prompt" aria-hidden="true">}</span>' +
+          '<textarea class="cx-tui-input" rows="1" spellcheck="false" ' +
+            'aria-label="回复（演示用，不会发送）" ' +
+            'placeholder="reply to thread…   (Enter 发送, Shift+Enter 换行)"></textarea>' +
+        '</div>' +
+        '<div class="cx-tui-hint">Enter 发送 · Shift+Enter 换行 —— 皮肤装饰，草稿只留在本地，刷新即消失</div>' +
+      '</div>';
+
+    document.body.appendChild(tuiDock);
+    bindTuiComposer(tuiDock);
+    return tuiDock;
   }
 
   function bindTuiComposer(foot) {
@@ -2403,6 +2516,7 @@
     ensureFab();
     syncBadge();
     syncActiveStrip();
+    syncBrand();
   }
 
   function syncActiveStrip() {
@@ -2456,11 +2570,11 @@
     }, true);
 
     // 站点自己的导航折叠（⌘B）后，rail 宽度由站点接管，无需处理；
-    // 这里做轻量兜底：图标条被移除、角标变化、明暗图标
+    // 这里做轻量兜底：图标条被移除、角标变化、明暗图标、侧栏品牌名
     setInterval(() => {
       if (document.querySelector('.app-shell')) {
         if (!strip || !strip.isConnected) schedule();
-        else { syncBadge(); syncActiveStrip(); }
+        else { syncBadge(); syncActiveStrip(); syncBrand(); }
       }
     }, 2500);
 
