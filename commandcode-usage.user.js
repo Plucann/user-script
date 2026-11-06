@@ -4,6 +4,10 @@
 // @version      1.0.0
 // @description  在 commandcode.ai 上挂一块悬浮用量看板：读取 /internal/usage/summary，展示 Credits 消耗环、请求/成功率/均次成本/均次 Token、Tok​en 进出占比、每日 Token 柱状图，并按套餐总额度预测「全部额度可承载 Token」「剩余额度可兑换 Token」「按当日消耗可用天数」「按日均消耗可用天数」「撑到期每日预算」。纯前端只读，不改站点任何数据。
 // @author       local
+// @homepageURL  https://github.com/Plucann/user-script/blob/main/commandcode-usage.user.js
+// @supportURL   https://github.com/Plucann/user-script
+// @updateURL    https://raw.githubusercontent.com/Plucann/user-script/refs/heads/main/commandcode-usage.user.js
+// @downloadURL  https://raw.githubusercontent.com/Plucann/user-script/refs/heads/main/commandcode-usage.user.js
 // @match        https://commandcode.ai/*
 // @match        https://www.commandcode.ai/*
 // @icon         https://commandcode.ai/favicon.ico
